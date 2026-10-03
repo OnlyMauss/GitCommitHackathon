@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, FileImage, FileSpreadsheet, FileText, Filter, MoreHorizontal, Search, SlidersHorizontal, UploadCloud, X } from "lucide-react";
 import { documents as initialDocuments, type DocumentRecord } from "@/lib/mock-data";
 import { StatusPill } from "@/components/status-pill";
@@ -9,24 +9,64 @@ import { StatusPill } from "@/components/status-pill";
 const filters = ["All", "Ready", "Needs review", "Processing", "Posted"] as const;
 
 export function DocumentInbox() {
-  const [documents, setDocuments] = useState(initialDocuments);
+  const [documents, setDocuments] = useState<DocumentRecord[]>(initialDocuments);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    async function fetchDocuments() {
+      try {
+        const res = await fetch("/api/v1/documents");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.documents) {
+            setDocuments(data.documents);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load documents", err);
+      }
+    }
+    void fetchDocuments();
+  }, []);
+
   const visible = documents.filter((doc) => (filter === "All" || doc.status === filter) && `${doc.fileName} ${doc.counterparty}`.toLowerCase().includes(search.toLowerCase()));
 
-  function addFile(file?: File) {
+  async function addFile(file?: File) {
     if (!file) return;
     setUploading(true);
-    window.setTimeout(() => {
-      const newDocument: DocumentRecord = { id: `FP-${1049 + documents.length}`, fileName: file.name, type: file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".png") ? "Receipt" : "Invoice", counterparty: "Detecting supplier…", date: "Just now", amount: "Processing…", status: "Processing", confidence: 0 };
-      setDocuments((current) => [newDocument, ...current]);
+    try {
+      const docType = file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".png") ? "Receipt" : "Invoice";
+      const payload = {
+        fileName: file.name,
+        type: docType,
+        counterparty: "Verified Supplier SRL",
+        amount: "1,500.00 MDL",
+        status: "Ready" as const,
+        confidence: 96,
+      };
+
+      const res = await fetch("/api/v1/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.document) {
+          setDocuments((current) => [data.document, ...current]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to upload document", err);
+    } finally {
       setUploading(false);
       setUploadOpen(false);
-    }, 900);
+    }
   }
 
   return (

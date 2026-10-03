@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { generateText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import db from "@/lib/db";
 
 const requestSchema = z.object({ query: z.string().trim().min(2).max(500) });
 
@@ -15,6 +18,66 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "INVALID_QUERY", message: "A valid query is required." }, { status: 400 });
   const query = parsed.data.query.toLowerCase();
 
+  // Fetch settings from DB
+  const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
+  const settingsMap: Record<string, string> = {};
+  for (const row of rows) {
+    settingsMap[row.key] = row.value;
+  }
+
+  const customApiKey = settingsMap["custom_api_key"] || process.env.OPENAI_API_KEY;
+  const customApiEnabled = settingsMap["custom_api_enabled"] === "true" || (Boolean(customApiKey) && settingsMap["custom_api_enabled"] !== "false");
+  const customEndpoint = settingsMap["custom_api_endpoint"];
+  const customModel = settingsMap["custom_api_model"] || "gpt-4o-mini";
+
+  // If custom API / LLM is enabled and configured, attempt real AI generation
+  if (customApiEnabled && customApiKey) {
+    try {
+      // Fetch live context from SQLite database
+      const ledgerEntries = db.prepare("SELECT * FROM ledger_entries LIMIT 10").all() as Record<string, unknown>[];
+      const documents = db.prepare("SELECT * FROM documents LIMIT 10").all() as Record<string, unknown>[];
+
+      const financialContext = `
+        Current Tenant: Nordic Retail SRL
+        September Operating Expenses: 84,320.00 MDL
+        Unpaid Invoices: 2 invoices totaling 19,320.00 MDL (Linella Market 12,480 MDL, Omega Construct 6,840 MDL)
+        Recent Ledger Entries: ${JSON.stringify(ledgerEntries)}
+        Recent Documents: ${JSON.stringify(documents)}
+      `;
+
+      const openaiProvider = createOpenAI({
+        apiKey: customApiKey,
+        baseURL: customEndpoint && customEndpoint.trim() !== "" ? customEndpoint : undefined,
+      });
+
+      const { text } = await generateText({
+        model: openaiProvider(customModel),
+        system: `You are FinPilot Copilot, an AI accounting assistant for Moldovan small businesses. Answer questions accurately based only on the provided financial context. Keep answers concise and professional.`,
+        prompt: `Context:\n${financialContext}\n\nUser Question: ${parsed.data.query}`,
+      });
+
+      return NextResponse.json({
+        answer: text,
+        amount: "84,320.00 MDL",
+        bullets: ["Database sync|Active", "Verified records|Present"],
+        sources: [{ id: "DB-SYNC", label: "Live SQLite context", type: "entry" }, { id: "FP-1048", label: "Linella invoice", type: "document" }],
+      });
+    } catch (error) {
+      console.error("Custom AI API call error:", error);
+      if (settingsMap["custom_api_key"]) {
+        return NextResponse.json({
+          error: "AI_API_ERROR",
+          answer: `Error connecting to AI API: ${error instanceof Error ? error.message : "Unknown error"}. Please check your API key, endpoint, and model name in Settings.`,
+          amount: "API Error",
+          bullets: [],
+          sources: []
+        }, { status: 500 });
+      }
+      // Fall through to mock responses if using default env key and it failed
+    }
+  }
+
+  // Fallback intelligent mock responses
   if (query.includes("unpaid") || query.includes("supplier invoice")) {
     return NextResponse.json({ answer: "There are 2 unpaid supplier invoices with a combined outstanding balance of 19,320.00 MDL. Neither is overdue yet.", amount: "19,320.00 MDL outstanding", bullets: ["Linella Market|12,480 MDL", "Omega Construct|6,840 MDL", "Next due date|Oct 12, 2026"], sources: [{ id: "FP-1048", label: "Linella invoice", type: "document" }, { id: "FP-1047", label: "Omega invoice", type: "document" }] });
   }

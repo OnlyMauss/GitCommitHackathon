@@ -86,7 +86,7 @@ export function LoginForm() {
       <section className="flex min-h-screen flex-col bg-[#f8f9fc]">
         <header className="flex h-[76px] items-center justify-between px-5 sm:px-9 lg:justify-end">
           <Link href="/login" aria-label="FinPilot AI home" className="rounded-lg bg-white px-3 py-2 shadow-sm lg:hidden"><Image src="/finpilot-logo.png" alt="FinPilot AI" width={160} height={53} className="h-auto w-[138px]" priority /></Link>
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-400"><ShieldCheck className="h-4 w-4 text-emerald-500" />Secure workspace</div>
+          <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-400"><span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-500" />Secure workspace</span><span>·</span><Link href="/register" className="font-extrabold text-[#0788ae] hover:underline">Create account</Link></div>
         </header>
 
         <div className="flex flex-1 items-center justify-center px-5 pb-10 sm:px-9 lg:pb-[76px]">

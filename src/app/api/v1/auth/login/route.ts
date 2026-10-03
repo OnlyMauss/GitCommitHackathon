@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import db, { verifyPassword } from "@/lib/db";
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -14,13 +15,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "INVALID_INPUT", message: "Enter a valid email address and password." }, { status: 400 });
   }
 
-  if (parsed.data.email !== "admin@finpilot.ai" || parsed.data.password !== "demo2026") {
+  const { email, password } = parsed.data;
+
+  const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as {
+    id: string;
+    email: string;
+    password_hash: string;
+    name: string;
+    company: string;
+    role: string;
+  } | undefined;
+
+  if (!user || !verifyPassword(password, user.password_hash)) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     return NextResponse.json({ code: "INVALID_CREDENTIALS", message: "Incorrect email or password. Try the demo account below." }, { status: 401 });
   }
 
   return NextResponse.json({
     authenticated: true,
-    user: { id: "demo-user-01", name: "Ana Vlas", email: parsed.data.email, role: "Administrator", company: "Nordic Retail SRL" },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company: user.company,
+    },
   });
 }

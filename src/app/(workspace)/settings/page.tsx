@@ -1,5 +1,6 @@
-import { BellRing, Building2, ChevronRight, CircleCheck, Landmark, Languages, LockKeyhole, Settings2, ShieldCheck, SlidersHorizontal, UserRound } from "lucide-react";
+import { BellRing, Building2, ChevronRight, Landmark, Languages, SlidersHorizontal, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { CustomApiSettings } from "@/features/settings/custom-api-settings";
 
 const sections = [
   { icon: Building2, title: "Company profile", description: "Legal name, IDNO, fiscal year and base currency", value: "Nordic Retail SRL" },
@@ -11,5 +12,38 @@ const sections = [
 ];
 
 export default function SettingsPage() {
-  return <div className="mx-auto max-w-[1100px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9"><PageHeader eyebrow="Workspace configuration" title="Settings" description="Control the policies that guide every automated accounting decision." /><div className="mt-7 grid gap-4 lg:grid-cols-[1fr_310px]"><section className="card-shadow overflow-hidden rounded-2xl border border-[#e8ebf2] bg-white"><div className="border-b border-[#eef0f5] px-5 py-4"><h2 className="text-[13px] font-extrabold text-[#0b1838]">Workspace settings</h2></div><div className="divide-y divide-[#f0f2f6]">{sections.map((section) => <button key={section.title} className="group flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-slate-50"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#eef8fb] text-[#0a8fb7]"><section.icon className="h-[18px] w-[18px]" /></span><span className="min-w-0 flex-1"><b className="block text-[11px] text-[#0b1838]">{section.title}</b><span className="mt-1 block text-[9px] font-medium text-slate-400">{section.description}</span></span><span className="hidden text-[9px] font-bold text-slate-400 sm:block">{section.value}</span><ChevronRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5" /></button>)}</div></section><aside className="space-y-4"><div className="rounded-2xl bg-[#0b1838] p-5 text-white"><ShieldCheck className="h-7 w-7 text-[#27d2f3]" /><h2 className="mt-4 text-sm font-extrabold">Security status</h2><p className="mt-2 text-[10px] leading-4.5 text-blue-100/65">Your workspace meets all configured demo security checks.</p><div className="mt-4 space-y-2.5">{["MFA enabled", "Audit log active", "Tenant isolation", "Encrypted storage"].map((item) => <div key={item} className="flex items-center gap-2 text-[9px] font-bold text-blue-50"><CircleCheck className="h-3.5 w-3.5 text-emerald-400" />{item}</div>)}</div></div><div className="card-shadow rounded-2xl border border-[#e8ebf2] bg-white p-5"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-violet-50 text-violet-600"><Settings2 className="h-4 w-4" /></span><div><b className="block text-[11px] text-[#0b1838]">Current policy</b><span className="text-[9px] font-medium text-slate-400">Version 2.1 · Sep 20</span></div></div><div className="mt-4 rounded-xl bg-slate-50 p-3 text-[9px] leading-4 text-slate-500"><LockKeyhole className="mb-2 h-4 w-4 text-slate-400" />Every record stores the policy version used to classify and approve it.</div></div></aside></div></div>;
+  return (
+    <div className="mx-auto max-w-[1120px] px-5 py-8 sm:px-9">
+      <PageHeader title="Workspace Settings" description="Manage company profile, chart of accounts, AI custom endpoints, and automation policies." />
+
+      <div className="mt-8 space-y-8">
+        <CustomApiSettings />
+
+        <div className="card-shadow rounded-3xl border border-[#e5e8ef] bg-white p-6 sm:p-8">
+          <h2 className="text-[16px] font-extrabold text-[#0b1838]">General Workspace Configuration</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Core parameters and policies for Nordic Retail SRL.</p>
+
+          <div className="mt-6 divide-y divide-[#edf0f4]">
+            {sections.map((section) => (
+              <div key={section.title} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3.5">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f4f7fb] text-[#0883a9]">
+                    <section.icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-[13px] font-extrabold text-[#0b1838]">{section.title}</h3>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{section.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-[#f4f7fb] px-3 py-1.5 text-[11px] font-bold text-[#0b1838]">{section.value}</span>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
